@@ -1,0 +1,40 @@
+name: Check Pubspec Version
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-version:
+    permissions: write-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Fetch all history so we can check tags
+
+      - name: Setup Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Extract version from pubspec.yaml
+        id: extract_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Fetch tags
+        run: git fetch --tags
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git tag --list | grep -q "v${{ env.VERSION }}"; then
+            echo "Tag v${{ env.VERSION }} already exists."
+            exit 1
+          else
+            echo "Tag v${{ env.VERSION }} does not exist."
+          fi
